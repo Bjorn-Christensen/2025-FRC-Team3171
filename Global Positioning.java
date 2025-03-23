@@ -11,7 +11,7 @@ PhotonCamera camera = new PhotonCamera("Arducam_USB_Camera");
 Transform3d robotToCam = new Transform3d(
     new Translation3d(inchesToMeters(5.49), // X: Forward/Backward from center (+/-)
                       inchesToMeters(8.86), // Y: Left/Right from center (+/-)
-                      inchesToMeters(32.49), // Z: Up/Down from center (+/-), robotToCamRot);
+                      inchesToMeters(32.49), // Z: Up/Down from center (+/-)
                       ),
     new Rotation3d()
 );
@@ -58,7 +58,7 @@ if(result.hasTargets()) {
         for(int fiducialId : reefTagIDs) {
             if(target.getFiducialId() == fiducialId) {
                 goalPose2D = new Pose2d(
-                  tagPose2D.getTranslation().plus(new Translation3d(-1.0, 0.0).rotateBy(tagPose2D.getRotation())), // Move X meters behind Tag
+                  tagPose2D.getTranslation().plus(new Translation2d(-1.0, 0.0).rotateBy(tagPose2D.getRotation())), // Move X meters behind Tag
                   tagPose2D.getRotation().plus(Rotation2d.fromDegrees(180)) // Face opposite direction (Towards tag)
                 );
                 targetLocked = true;
