@@ -541,6 +541,7 @@ public class Robot extends TimedRobot implements RobotProperties {
         cameraToTag = bestGeneralTargetVC.getPHOTON_TRACKED_TARGET().getBestCameraToTarget();
         tagPose3D = fieldLayout.getTagPose(bestGeneralTargetVC.getPHOTON_TRACKED_TARGET().getFiducialId()).get();
         robotPose2D = PhotonUtils.estimateFieldToRobotAprilTag(cameraToTag, tagPose3D, robotToCam.inverse()).toPose2d();
+        // Compare difference in new estimation to original estimation, reject large changes?
       }
 
       // Choose reef goal pose
