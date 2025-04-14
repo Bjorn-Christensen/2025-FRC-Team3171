@@ -67,8 +67,8 @@ public class RobotContainer {
         driverXbox.leftTrigger(0.1).whileTrue(new IntakeMotorCommand(intakeSubsystem, IntakeConstants.OUTTAKE_SPEED));
         
         // Climb Buttons
-        driverXbox.rightBumper().onTrue(new ClimberCommand(climberSubsystem, ClimberConstants.CLIMBER_SPEED));
-        driverXbox.leftBumper().onTrue(new ClimberCommand(climberSubsystem, -ClimberConstants.CLIMBER_SPEED));
+        driverXbox.rightBumper().whileTrue(new ClimberCommand(climberSubsystem, ClimberConstants.CLIMBER_SPEED));
+        driverXbox.leftBumper().whileTrue(new ClimberCommand(climberSubsystem, -ClimberConstants.CLIMBER_SPEED));
 
         // Drive Controls
         Command driveFieldOrientedAnglularVelocity = swerveSubsystem.driveFieldOriented(driveAngularVelocity);

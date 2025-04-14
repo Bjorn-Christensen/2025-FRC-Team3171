@@ -54,20 +54,19 @@ public class SwerveSubsystem extends SubsystemBase{
         swerveDrive.setModuleEncoderAutoSynchronize(false, 1); // Enable if you want to resynchronize your absolute encoders and motor encoders periodically when they are not moving.
 
         // Enable vision tracking and path planner
-        setupPhotonVision();
-        swerveDrive.stopOdometryThread(); // Stop the odometry thread if we are using vision that way we can synchronize updates better.
+        // setupPhotonVision();
+        // swerveDrive.stopOdometryThread(); // Stop the odometry thread if we are using vision that way we can synchronize updates better.
         // setupPathPlanner();
     }
 
     public void setupPhotonVision() {
         vision = new Vision(swerveDrive::getPose, swerveDrive.field);
-        System.out.println(swerveDrive.field.toString() + " HERE !!!!");
     }
 
     @Override
     public void periodic() {
         swerveDrive.updateOdometry(); // When vision is enabled we must manually update odometry in SwerveDrive
-        vision.updatePoseEstimation(swerveDrive);
+        // vision.updatePoseEstimation(swerveDrive);
     }
 
     public void setupPathPlanner() {

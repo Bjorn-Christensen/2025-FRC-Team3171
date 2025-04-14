@@ -24,10 +24,11 @@ public class ClimberSubsystem extends SubsystemBase{
 
     // Shuffleboard / Testing
     private final ShuffleboardTab tab = Shuffleboard.getTab("Subsystems");
+    private final GenericEntry climberSpeed = tab.add("Climber Speed", 0.0).getEntry();
 
     @Override
     public void periodic() {
-
+        climberSpeed.setDouble(climberMotor.get());
     }
 
 }
