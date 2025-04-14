@@ -1,29 +1,26 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.subsystems.ElevatorSubsystem;
 
-public class ElevatorJoystickCommand extends Command{
+public class ElevatorHoldCommand extends Command{
     
     private final ElevatorSubsystem elevatorSubsystem;
-    private final CommandXboxController xboxController;
+    private double lastEncoderPos;
 
-    public ElevatorJoystickCommand(ElevatorSubsystem elevatorSubsystem, CommandXboxController xboxController) {
+    public ElevatorHoldCommand(ElevatorSubsystem elevatorSubsystem) {
         this.elevatorSubsystem = elevatorSubsystem;
-        this.xboxController= xboxController;
         addRequirements(elevatorSubsystem);
     }
 
     @Override
     public void initialize() {
-
+        lastEncoderPos = elevatorSubsystem.getEncoder();
     }
 
     @Override
     public void execute() {
-        double speed = xboxController.getRightTriggerAxis() - xboxController.getLeftTriggerAxis();
-        elevatorSubsystem.setMotor(speed);
+        elevatorSubsystem.setSetpoint(lastEncoderPos);
     }
 
     @Override

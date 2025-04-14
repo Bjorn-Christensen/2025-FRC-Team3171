@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 
 import frc.robot.commands.ElevatorJoystickCommand;
 import frc.robot.commands.ElevatorPIDCommand;
+import frc.robot.commands.ElevatorHoldCommand;
 import frc.robot.commands.IntakeMotorCommand;
 import frc.robot.commands.IntakeMoveCommand;
 import frc.robot.commands.ClimberCommand;
@@ -51,22 +52,23 @@ public class RobotContainer {
 
     private void configureButtonBindings() {
 
-        // Elevator Buttons
-        operatorXbox.rightTrigger(OperatorConstants.RIGHT_TRIGGER_DEADZONE).whileTrue(new ElevatorJoystickCommand(elevatorSubsystem, ElevatorConstants.MANUAL_ELEVATOR_SPEED));
-        operatorXbox.leftTrigger(OperatorConstants.LEFT_TRIGGER_DEADZONE).whileTrue(new ElevatorJoystickCommand(elevatorSubsystem, -ElevatorConstants.MANUAL_ELEVATOR_SPEED));
+        // Elevator Controls
+        operatorXbox.rightTrigger(OperatorConstants.RIGHT_TRIGGER_DEADZONE).whileTrue(new ElevatorJoystickCommand(elevatorSubsystem, operatorXbox));
+        operatorXbox.leftTrigger(OperatorConstants.LEFT_TRIGGER_DEADZONE).whileTrue(new ElevatorJoystickCommand(elevatorSubsystem, operatorXbox));
         operatorXbox.a().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.POSITION_ONE));
         operatorXbox.b().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.POSITION_TWO));
         operatorXbox.y().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.POSITION_THREE));
         operatorXbox.x().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.POSITION_FOUR));
         operatorXbox.leftBumper().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.LOAD_STATION_POSITION));
+        elevatorSubsystem.setDefaultCommand(new ElevatorHoldCommand(elevatorSubsystem));
 
-        // Intake Buttons
+        // Intake Controls
         operatorXbox.povUp().onTrue(new IntakeMoveCommand(intakeSubsystem, true));
         operatorXbox.povDown().onTrue(new IntakeMoveCommand(intakeSubsystem, false));
         driverXbox.rightTrigger(0.1).whileTrue(new IntakeMotorCommand(intakeSubsystem, IntakeConstants.INTAKE_SPEED));
         driverXbox.leftTrigger(0.1).whileTrue(new IntakeMotorCommand(intakeSubsystem, IntakeConstants.OUTTAKE_SPEED));
         
-        // Climb Buttons
+        // Climb Controls
         driverXbox.rightBumper().whileTrue(new ClimberCommand(climberSubsystem, ClimberConstants.CLIMBER_SPEED));
         driverXbox.leftBumper().whileTrue(new ClimberCommand(climberSubsystem, -ClimberConstants.CLIMBER_SPEED));
 

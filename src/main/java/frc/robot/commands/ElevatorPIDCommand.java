@@ -17,18 +17,17 @@ public class ElevatorPIDCommand extends Command{
 
     @Override
     public void initialize() {
-        elevatorSubsystem.setSetpoint(setpoint);
         elevatorSubsystem.resetPID();
     }
 
     @Override
     public void execute() {
-        elevatorSubsystem.setMotor(0, false);
+        elevatorSubsystem.setSetpoint(setpoint);
     }
 
     @Override
     public void end(boolean interrupted) {
-        elevatorSubsystem.setMotor(0, true);
+        elevatorSubsystem.setMotor(0);
     }
 
     @Override
