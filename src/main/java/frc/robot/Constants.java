@@ -43,16 +43,19 @@ public final class Constants {
         public static final double CLIMBER_SPEED = 0.7;
     }
 
+    // Drivetrain Constants
     public static final class DrivetrainConstants {
-        public static final double MAX_SPEED  = Units.feetToMeters(15.0);
+        public static final double MAX_SPEED = Units.feetToMeters(15.0);
         public static final double WHEEL_LOCK_TIME = 10; // Hold time on motor brakes when disabled (seconds)
     }
 
+    // Drive Joystick Constants
     public static class DriverConstants {
         // Deadzones (Deadband)
         public static final double DEADZONE = 0.2;
     }
 
+    // Operator Joystick Constants
     public static class OperatorConstants {
         // Deadzones (Deadband)
         public static final double LEFT_TRIGGER_DEADZONE = 0.1, RIGHT_TRIGGER_DEADZONE = 0.1;

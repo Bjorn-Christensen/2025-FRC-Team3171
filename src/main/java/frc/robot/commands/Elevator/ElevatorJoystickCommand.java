@@ -1,28 +1,29 @@
-package frc.robot.commands;
+package frc.robot.commands.Elevator;
 
 import edu.wpi.first.wpilibj2.command.Command;
-
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.subsystems.ElevatorSubsystem;
 
-public class ElevatorPIDCommand extends Command{
+public class ElevatorJoystickCommand extends Command{
     
     private final ElevatorSubsystem elevatorSubsystem;
-    private final double setpoint;
+    private final CommandXboxController xboxController;
 
-    public ElevatorPIDCommand(ElevatorSubsystem elevatorSubsystem, double setpoint) {
+    public ElevatorJoystickCommand(ElevatorSubsystem elevatorSubsystem, CommandXboxController xboxController) {
         this.elevatorSubsystem = elevatorSubsystem;
-        this.setpoint = setpoint;
+        this.xboxController= xboxController;
         addRequirements(elevatorSubsystem);
     }
 
     @Override
     public void initialize() {
-        elevatorSubsystem.resetPID();
+
     }
 
     @Override
     public void execute() {
-        elevatorSubsystem.setSetpoint(setpoint);
+        double speed = xboxController.getRightTriggerAxis() - xboxController.getLeftTriggerAxis();
+        elevatorSubsystem.setMotor(speed);
     }
 
     @Override

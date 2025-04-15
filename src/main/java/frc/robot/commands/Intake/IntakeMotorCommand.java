@@ -1,17 +1,17 @@
-package frc.robot.commands;
+package frc.robot.commands.Intake;
 
 import edu.wpi.first.wpilibj2.command.Command;
 
 import frc.robot.subsystems.IntakeSubsystem;
 
-public class IntakeMoveCommand extends Command{
+public class IntakeMotorCommand extends Command{
     
     private final IntakeSubsystem intakeSubsystem;
-    private final boolean forward;
+    private final double speed;
 
-    public IntakeMoveCommand(IntakeSubsystem intakeSubsystem, boolean forward) {
+    public IntakeMotorCommand(IntakeSubsystem intakeSubsystem, double speed) {
         this.intakeSubsystem = intakeSubsystem;
-        this.forward = forward;
+        this.speed = speed;
         addRequirements(intakeSubsystem);
     }
 
@@ -22,12 +22,12 @@ public class IntakeMoveCommand extends Command{
 
     @Override
     public void execute() {
-        intakeSubsystem.moveIntake(forward);
+        intakeSubsystem.setMotor(speed);
     }
 
     @Override
     public void end(boolean interrupted) {
-        intakeSubsystem.moveIntake(false);
+        intakeSubsystem.setMotor(0);
     }
 
     @Override

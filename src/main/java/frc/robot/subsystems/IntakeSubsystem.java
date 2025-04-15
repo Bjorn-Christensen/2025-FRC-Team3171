@@ -3,6 +3,10 @@ package frc.robot.subsystems;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.SparkBase.PersistMode;
 
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
@@ -18,11 +22,15 @@ public class IntakeSubsystem extends SubsystemBase{
     
     // Hardware
     private final SparkMax intakeMotor;
+    private final SparkMaxConfig intakeConfig;
     private final DoubleSolenoid doubleSolenoid;
     private final Compressor compressor; 
 
     public IntakeSubsystem() {
         intakeMotor = new SparkMax(IntakeConstants.INTAKE_CAN_ID, IntakeConstants.MOTOR_TYPE);
+        intakeConfig = new SparkMaxConfig();
+        intakeConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(30);
+        intakeMotor.configure(intakeConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         doubleSolenoid = new DoubleSolenoid(IntakeConstants.PCM_CAN_ID, PneumaticsModuleType.REVPH, 
                                             IntakeConstants.PICKUP_FORWARD_CHANNEL, IntakeConstants.PICKUP_REVERSE_CHANNEL);
         compressor = new Compressor(IntakeConstants.PCM_CAN_ID, PneumaticsModuleType.REVPH);

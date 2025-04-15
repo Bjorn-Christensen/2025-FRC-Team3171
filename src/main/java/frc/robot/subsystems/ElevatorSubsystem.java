@@ -3,9 +3,13 @@ package frc.robot.subsystems;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import com.revrobotics.spark.SparkMax;
-import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.SparkBase.ControlType;
+import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkClosedLoopController;
+import com.revrobotics.RelativeEncoder;
 
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
@@ -17,6 +21,7 @@ public class ElevatorSubsystem extends SubsystemBase{
     
     // Hardware
     private final SparkMax elevatorMotor;
+    private final SparkMaxConfig elevatorConfig;
     private final RelativeEncoder encoder; 
 
     // Onboard PID
@@ -24,6 +29,9 @@ public class ElevatorSubsystem extends SubsystemBase{
 
     public ElevatorSubsystem() {
         elevatorMotor = new SparkMax(ElevatorConstants.ELEVATOR_CAN_ID, ElevatorConstants.MOTOR_TYPE);
+        elevatorConfig = new SparkMaxConfig();
+        elevatorConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(40);
+        elevatorMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         encoder = elevatorMotor.getEncoder();
         pidController = elevatorMotor.getClosedLoopController();
     }
@@ -51,15 +59,13 @@ public class ElevatorSubsystem extends SubsystemBase{
 
     // Shuffleboard / Testing
     private final ShuffleboardTab tab = Shuffleboard.getTab("Subsystems");
-    private final GenericEntry encoderOutput = tab.add("Elevator Encoder Value", 0).getEntry();
+    private final GenericEntry encoderOutput = tab.add("Elevator Encoder Value", 0.0).getEntry();
     private final GenericEntry speedOutput = tab.add("Elevator PID Calculated Speed", 0.0).getEntry();
-    private final GenericEntry curMotorSpeed = tab.add("Elevator Motor Speed", 0.0).getEntry();
 
     @Override
     public void periodic() {
         encoderOutput.setDouble(getEncoder());
-        speedOutput.setDouble(elevatorMotor.getAppliedOutput());
-        curMotorSpeed.setDouble(elevatorMotor.get());
+        speedOutput.setDouble(elevatorMotor.get());
     }
     
 }

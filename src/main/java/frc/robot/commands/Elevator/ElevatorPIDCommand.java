@@ -1,26 +1,28 @@
-package frc.robot.commands;
+package frc.robot.commands.Elevator;
 
 import edu.wpi.first.wpilibj2.command.Command;
+
 import frc.robot.subsystems.ElevatorSubsystem;
 
-public class ElevatorHoldCommand extends Command{
+public class ElevatorPIDCommand extends Command{
     
     private final ElevatorSubsystem elevatorSubsystem;
-    private double lastEncoderPos;
+    private final double setpoint;
 
-    public ElevatorHoldCommand(ElevatorSubsystem elevatorSubsystem) {
+    public ElevatorPIDCommand(ElevatorSubsystem elevatorSubsystem, double setpoint) {
         this.elevatorSubsystem = elevatorSubsystem;
+        this.setpoint = setpoint;
         addRequirements(elevatorSubsystem);
     }
 
     @Override
     public void initialize() {
-        lastEncoderPos = elevatorSubsystem.getEncoder();
+        elevatorSubsystem.resetPID();
     }
 
     @Override
     public void execute() {
-        elevatorSubsystem.setSetpoint(lastEncoderPos);
+        elevatorSubsystem.setSetpoint(setpoint);
     }
 
     @Override

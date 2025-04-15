@@ -4,14 +4,12 @@ import java.io.File;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.Command;
-
-import frc.robot.commands.ElevatorJoystickCommand;
-import frc.robot.commands.ElevatorPIDCommand;
-import frc.robot.commands.ElevatorHoldCommand;
-import frc.robot.commands.IntakeMotorCommand;
-import frc.robot.commands.IntakeMoveCommand;
-import frc.robot.commands.ClimberCommand;
-
+import frc.robot.commands.Climber.ClimberCommand;
+import frc.robot.commands.Elevator.ElevatorHoldCommand;
+import frc.robot.commands.Elevator.ElevatorJoystickCommand;
+import frc.robot.commands.Elevator.ElevatorPIDCommand;
+import frc.robot.commands.Intake.IntakeMotorCommand;
+import frc.robot.commands.Intake.IntakeMoveCommand;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ClimberSubsystem;
