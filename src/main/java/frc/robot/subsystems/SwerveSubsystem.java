@@ -17,8 +17,9 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import swervelib.SwerveDrive;
 import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry;
@@ -33,7 +34,7 @@ public class SwerveSubsystem extends SubsystemBase{
 
     public SwerveSubsystem(File directory) {
 
-        boolean blueAlliance = true;
+        boolean blueAlliance = false;
         Pose2d startingPose = blueAlliance ? new Pose2d(new Translation2d(Meter.of(1),
                                                                       Meter.of(4)),
                                                     Rotation2d.fromDegrees(0))
@@ -54,9 +55,10 @@ public class SwerveSubsystem extends SubsystemBase{
         swerveDrive.setModuleEncoderAutoSynchronize(true, 1); // Enable if you want to resynchronize your absolute encoders and motor encoders periodically when they are not moving.
 
         // Enable vision tracking and path planner
-        // setupPhotonVision();
-        // swerveDrive.stopOdometryThread(); // Stop the odometry thread if we are using vision that way we can synchronize updates better.
+        setupPhotonVision();
+        swerveDrive.stopOdometryThread(); // Stop the odometry thread if we are using vision that way we can synchronize updates better.
         // setupPathPlanner();
+        RobotModeTriggers.autonomous().onTrue(Commands.runOnce(this::zeroGyroWithAlliance));
     }
 
     public void setupPhotonVision() {
@@ -66,7 +68,7 @@ public class SwerveSubsystem extends SubsystemBase{
     @Override
     public void periodic() {
         swerveDrive.updateOdometry(); // When vision is enabled we must manually update odometry in SwerveDrive
-        // vision.updatePoseEstimation(swerveDrive);
+        vision.updatePoseEstimation(swerveDrive);
     }
 
     public void setupPathPlanner() {
@@ -129,6 +131,10 @@ public class SwerveSubsystem extends SubsystemBase{
         return swerveDrive;
     }
 
+    public void lock() {
+        swerveDrive.lockPose();
+    }
+
     public void setMotorBrake(boolean brake) {
         swerveDrive.setMotorIdleMode(brake);
     }
@@ -143,6 +149,17 @@ public class SwerveSubsystem extends SubsystemBase{
     // Create a path following command using AutoBuilder. This will also trigger event markers.
     public Command getAutonomousCommand(String pathName) {
         return new PathPlannerAuto(pathName);
+    }
+
+    public void zeroGyroWithAlliance() {
+        var alliance = DriverStation.getAlliance();
+        if(alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red) {
+            swerveDrive.zeroGyro();
+            //Set the pose 180 degrees
+            resetOdometry(new Pose2d(getPose().getTranslation(), Rotation2d.fromDegrees(180)));
+        } else {
+            swerveDrive.zeroGyro();
+        }
     }
 
     // public Command driveToPose(Pose2d pose) {
