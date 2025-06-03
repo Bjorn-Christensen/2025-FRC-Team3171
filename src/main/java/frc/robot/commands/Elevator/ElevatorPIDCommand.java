@@ -17,7 +17,7 @@ public class ElevatorPIDCommand extends Command{
 
     @Override
     public void initialize() {
-        elevatorSubsystem.resetPID();
+        
     }
 
     @Override

@@ -12,11 +12,9 @@ public final class Constants {
     
     // Elevator Constants
     public static class ElevatorConstants {
-        public static final int ELEVATOR_CAN_ID = 11;
+        public static final int ELEVATOR_LEADER_CAN_ID = 11, ELEVATOR_FOLLOWER_CAN_ID = 12;
         public static final MotorType MOTOR_TYPE = MotorType.kBrushless;
         public static final double kP = .1, kI = 0, kD = 0; // PID Values
-        public static final int ELEVATOR_ENCODER_CHANNEL_A = 1, ELEVATOR_ENCODER_CHANNEL_B = 0;
-        public static final int ELEVATOR_LINE_SENSOR_CHANNEL = 2;
         public static final int LOWER_BOUND = 300, UPPER_BOUND = 11700; // Encoder Min/Max
         public static final double MANUAL_ELEVATOR_SPEED = 0.7;
         public static final int POSITION_ONE = 0, POSITION_TWO = 4143, POSITION_THREE = 7305, POSITION_FOUR = 11561;
@@ -26,7 +24,7 @@ public final class Constants {
     // Intake Constants
     public static class IntakeConstants {
         // Intake Motor
-        public static final int INTAKE_CAN_ID = 9;
+        public static final int INTAKE_LEADER_CAN_ID = 9, INTAKE_FOLLOWER_CAN_ID = 10;
         public static final MotorType MOTOR_TYPE = MotorType.kBrushless;
         public static final double INTAKE_SPEED = 0.7, OUTTAKE_SPEED = -0.7;
 

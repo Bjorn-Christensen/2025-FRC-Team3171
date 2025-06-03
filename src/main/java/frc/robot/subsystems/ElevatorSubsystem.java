@@ -20,20 +20,33 @@ import frc.robot.Constants.ElevatorConstants;
 public class ElevatorSubsystem extends SubsystemBase{
     
     // Hardware
-    private final SparkMax elevatorMotor;
-    private final SparkMaxConfig elevatorConfig;
+    private final SparkMax elevatorLeaderMotor;
+    private final SparkMax elevatorFollowerMotor;
+    private final SparkMaxConfig elevatorLeaderConfig;
+    private final SparkMaxConfig elevatorFollowerConfig;
     private final RelativeEncoder encoder; 
 
     // Onboard PID
     private final SparkClosedLoopController pidController;
 
     public ElevatorSubsystem() {
-        elevatorMotor = new SparkMax(ElevatorConstants.ELEVATOR_CAN_ID, ElevatorConstants.MOTOR_TYPE);
-        elevatorConfig = new SparkMaxConfig();
-        elevatorConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(40);
-        elevatorMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-        encoder = elevatorMotor.getEncoder();
-        pidController = elevatorMotor.getClosedLoopController();
+        // Initialize Motors
+        elevatorLeaderMotor = new SparkMax(ElevatorConstants.ELEVATOR_LEADER_CAN_ID, ElevatorConstants.MOTOR_TYPE);
+        elevatorFollowerMotor = new SparkMax(ElevatorConstants.ELEVATOR_FOLLOWER_CAN_ID, ElevatorConstants.MOTOR_TYPE);
+        // Initialize Motor Configurations
+        elevatorLeaderConfig = new SparkMaxConfig();
+        elevatorLeaderConfig.idleMode(IdleMode.kBrake).
+                            smartCurrentLimit(40).
+                            closedLoop.p(ElevatorConstants.kP).i(ElevatorConstants.kI).d(ElevatorConstants.kD);
+        elevatorFollowerConfig = new SparkMaxConfig();
+        elevatorFollowerConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(40).follow(elevatorLeaderMotor, true);
+        // Configure Motors
+        elevatorLeaderMotor.configure(elevatorLeaderConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        elevatorFollowerMotor.configure(elevatorFollowerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        // Initialize Encoder and PID Controller
+        encoder = elevatorLeaderMotor.getEncoder();
+        encoder.setPosition(0.0); // Encoder Zeroing on Startup
+        pidController = elevatorLeaderMotor.getClosedLoopController();
     }
     
     public double getEncoder() {
@@ -41,20 +54,18 @@ public class ElevatorSubsystem extends SubsystemBase{
     }
 
     public void setSetpoint(double setpoint) {
-        if ((setpoint < ElevatorConstants.LOWER_BOUND && getEncoder() <= ElevatorConstants.LOWER_BOUND) ||
-            (setpoint > ElevatorConstants.UPPER_BOUND && getEncoder() >= ElevatorConstants.UPPER_BOUND)) {
-            elevatorMotor.set(0);
-        } else {
-            pidController.setReference(setpoint, ControlType.kPosition);
-        }
-    }
-
-    public void resetPID() {
-        encoder.setPosition(0);
+        // Move elevator to desired encoder position
+        pidController.setReference(setpoint, ControlType.kPosition);
     }
 
     public void setMotor(double speed) {
-        elevatorMotor.set(speed);
+        // Safety feature to limit bounds of elevator movement
+        if ((speed < 0 && getEncoder() <= ElevatorConstants.LOWER_BOUND) ||
+            (speed > 0 && getEncoder() >= ElevatorConstants.UPPER_BOUND)) {
+            elevatorLeaderMotor.set(0);
+        } else {
+            elevatorLeaderMotor.set(speed);
+        }
     }
 
     // Shuffleboard / Testing
@@ -65,7 +76,7 @@ public class ElevatorSubsystem extends SubsystemBase{
     @Override
     public void periodic() {
         encoderOutput.setDouble(getEncoder());
-        speedOutput.setDouble(elevatorMotor.get());
+        speedOutput.setDouble(elevatorLeaderMotor.get());
     }
     
 }

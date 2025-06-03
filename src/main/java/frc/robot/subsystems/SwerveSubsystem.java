@@ -34,13 +34,7 @@ public class SwerveSubsystem extends SubsystemBase{
 
     public SwerveSubsystem(File directory) {
 
-        boolean blueAlliance = false;
-        Pose2d startingPose = blueAlliance ? new Pose2d(new Translation2d(Meter.of(1),
-                                                                      Meter.of(4)),
-                                                    Rotation2d.fromDegrees(0))
-                                        : new Pose2d(new Translation2d(Meter.of(16),
-                                                                      Meter.of(4)),
-                                                    Rotation2d.fromDegrees(180));
+        Pose2d startingPose = new Pose2d(0.0, 0.0, new Rotation2d(0.0));
 
         // Configure the Telemetry before creating the SwerveDrive to avoid unnecessary objects being created.
         SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
@@ -50,70 +44,70 @@ public class SwerveSubsystem extends SubsystemBase{
             throw new RuntimeException(e);
         }
         swerveDrive.setHeadingCorrection(false); // Heading correction should only be used while controlling the robot via angle.
-        swerveDrive.setCosineCompensator(false);//!SwerveDriveTelemetry.isSimulation); // Disables cosine compensation for simulations since it causes discrepancies not seen in real life.
+        swerveDrive.setCosineCompensator(true);//!SwerveDriveTelemetry.isSimulation); // Disables cosine compensation for simulations since it causes discrepancies not seen in real life.
         swerveDrive.setAngularVelocityCompensation(true, true, 0.1); //Correct for skew that gets worse as angular velocity increases. Start with a coefficient of 0.1.
         swerveDrive.setModuleEncoderAutoSynchronize(true, 1); // Enable if you want to resynchronize your absolute encoders and motor encoders periodically when they are not moving.
 
         // Enable vision tracking and path planner
-        setupPhotonVision();
-        swerveDrive.stopOdometryThread(); // Stop the odometry thread if we are using vision that way we can synchronize updates better.
+        // setupPhotonVision();
+        // swerveDrive.stopOdometryThread(); // Stop the odometry thread if we are using vision that way we can synchronize updates better.
         // setupPathPlanner();
         RobotModeTriggers.autonomous().onTrue(Commands.runOnce(this::zeroGyroWithAlliance));
     }
 
-    public void setupPhotonVision() {
-        vision = new Vision(swerveDrive::getPose, swerveDrive.field);
-    }
+    // public void setupPhotonVision() {
+    //     vision = new Vision(swerveDrive::getPose, swerveDrive.field);
+    // }
 
     @Override
     public void periodic() {
         swerveDrive.updateOdometry(); // When vision is enabled we must manually update odometry in SwerveDrive
-        vision.updatePoseEstimation(swerveDrive);
+        // vision.updatePoseEstimation(swerveDrive);
     }
 
-    public void setupPathPlanner() {
-        // Load the RobotConfig from the GUI settings.
-        RobotConfig config;
-        try {
-            config = RobotConfig.fromGUISettings();
+    // public void setupPathPlanner() {
+    //     // Load the RobotConfig from the GUI settings.
+    //     RobotConfig config;
+    //     try {
+    //         config = RobotConfig.fromGUISettings();
 
-            // Configure AutoBuilder last
-            AutoBuilder.configure(
-                this::getPose,
-                this::resetOdometry,
-                this::getRobotVelocity,
-                (speedsRobotRelative, moduleFeedForwards) -> {
-                        swerveDrive.drive(
-                            speedsRobotRelative,
-                            swerveDrive.kinematics.toSwerveModuleStates(speedsRobotRelative),
-                            moduleFeedForwards.linearForces());
-                },
-                // PPHolonomicController is the built in path following controller for holonomic drive trains
-                new PPHolonomicDriveController(
-                    new PIDConstants(5.0, 0.0, 0.0), // Translation PID constants
-                    new PIDConstants(5.0, 0.0, 0.0) // Rotation PID constants
-                ),
-                config,
-                () -> {
-                    // Boolean supplier that controls when the path will be mirrored for the red alliance
-                    // This will flip the path being followed to the red side of the field.
-                    // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+    //         // Configure AutoBuilder last
+    //         AutoBuilder.configure(
+    //             this::getPose,
+    //             this::resetOdometry,
+    //             this::getRobotVelocity,
+    //             (speedsRobotRelative, moduleFeedForwards) -> {
+    //                     swerveDrive.drive(
+    //                         speedsRobotRelative,
+    //                         swerveDrive.kinematics.toSwerveModuleStates(speedsRobotRelative),
+    //                         moduleFeedForwards.linearForces());
+    //             },
+    //             // PPHolonomicController is the built in path following controller for holonomic drive trains
+    //             new PPHolonomicDriveController(
+    //                 new PIDConstants(5.0, 0.0, 0.0), // Translation PID constants
+    //                 new PIDConstants(5.0, 0.0, 0.0) // Rotation PID constants
+    //             ),
+    //             config,
+    //             () -> {
+    //                 // Boolean supplier that controls when the path will be mirrored for the red alliance
+    //                 // This will flip the path being followed to the red side of the field.
+    //                 // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
 
-                    var alliance = DriverStation.getAlliance();
-                    if (alliance.isPresent()) {
-                        return alliance.get() == DriverStation.Alliance.Red;
-                    }
-                    return false;
-                },
-                this // Reference to this subsystem to set requirements
-            );
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    //                 var alliance = DriverStation.getAlliance();
+    //                 if (alliance.isPresent()) {
+    //                     return alliance.get() == DriverStation.Alliance.Red;
+    //                 }
+    //                 return false;
+    //             },
+    //             this // Reference to this subsystem to set requirements
+    //         );
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
 
-        //Preload PathPlanner Path finding
-        PathfindingCommand.warmupCommand().schedule();
-    }
+    //     //Preload PathPlanner Path finding
+    //     PathfindingCommand.warmupCommand().schedule();
+    // }
 
     public Pose2d getPose() {
         return swerveDrive.getPose();

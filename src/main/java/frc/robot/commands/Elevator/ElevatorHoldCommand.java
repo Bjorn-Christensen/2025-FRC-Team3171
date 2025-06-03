@@ -2,6 +2,7 @@ package frc.robot.commands.Elevator;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.ElevatorSubsystem;
+import frc.robot.Constants.ElevatorConstants;
 
 public class ElevatorHoldCommand extends Command{
     
@@ -15,8 +16,11 @@ public class ElevatorHoldCommand extends Command{
 
     @Override
     public void initialize() {
-        lastEncoderPos = elevatorSubsystem.getEncoder();
-        elevatorSubsystem.resetPID();
+        // Safety Feature to Ensure Elevator Bounds are Upheld
+        lastEncoderPos = Math.min(
+            ElevatorConstants.UPPER_BOUND,
+            Math.max(ElevatorConstants.LOWER_BOUND, elevatorSubsystem.getEncoder())
+        );
     }
 
     @Override

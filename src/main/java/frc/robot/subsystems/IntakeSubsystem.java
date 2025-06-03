@@ -21,16 +21,26 @@ import frc.robot.Constants.IntakeConstants;
 public class IntakeSubsystem extends SubsystemBase{
     
     // Hardware
-    private final SparkMax intakeMotor;
-    private final SparkMaxConfig intakeConfig;
+    private final SparkMax intakeLeaderMotor;
+    private final SparkMax intakeFollowerMotor;
+    private final SparkMaxConfig intakeLeaderConfig;
+    private final SparkMaxConfig intakeFollowerConfig;
     private final DoubleSolenoid doubleSolenoid;
     private final Compressor compressor; 
 
     public IntakeSubsystem() {
-        intakeMotor = new SparkMax(IntakeConstants.INTAKE_CAN_ID, IntakeConstants.MOTOR_TYPE);
-        intakeConfig = new SparkMaxConfig();
-        intakeConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(30);
-        intakeMotor.configure(intakeConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        // Initialize Motors
+        intakeLeaderMotor = new SparkMax(IntakeConstants.INTAKE_LEADER_CAN_ID, IntakeConstants.MOTOR_TYPE);
+        intakeFollowerMotor = new SparkMax(IntakeConstants.INTAKE_FOLLOWER_CAN_ID, IntakeConstants.MOTOR_TYPE);
+        // Initialize Motor Configurations
+        intakeLeaderConfig = new SparkMaxConfig();
+        intakeLeaderConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(30);
+        intakeFollowerConfig = new SparkMaxConfig();
+        intakeFollowerConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(30).follow(intakeLeaderMotor, true);
+        // Configure Motors
+        intakeLeaderMotor.configure(intakeLeaderConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        intakeFollowerMotor.configure(intakeFollowerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        // Initialize Pneumatics
         doubleSolenoid = new DoubleSolenoid(IntakeConstants.PCM_CAN_ID, PneumaticsModuleType.REVPH, 
                                             IntakeConstants.PICKUP_FORWARD_CHANNEL, IntakeConstants.PICKUP_REVERSE_CHANNEL);
         compressor = new Compressor(IntakeConstants.PCM_CAN_ID, PneumaticsModuleType.REVPH);
@@ -38,7 +48,7 @@ public class IntakeSubsystem extends SubsystemBase{
     }
 
     public void setMotor(double speed) {
-        intakeMotor.set(speed);
+        intakeLeaderMotor.set(speed);
     }
 
     public void moveIntake(boolean forward) {
