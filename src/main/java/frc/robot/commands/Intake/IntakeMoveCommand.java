@@ -17,21 +17,11 @@ public class IntakeMoveCommand extends Command{
 
     @Override
     public void initialize() {
-
-    }
-
-    @Override
-    public void execute() {
         intakeSubsystem.moveIntake(forward);
     }
 
     @Override
-    public void end(boolean interrupted) {
-        intakeSubsystem.moveIntake(false);
-    }
-
-    @Override
     public boolean isFinished() {
-        return false;
+        return true;
     }
 }

@@ -16,11 +16,6 @@ public class ClimberCommand extends Command{
     }
 
     @Override
-    public void initialize() {
-
-    }
-
-    @Override
     public void execute() {
         climberSubsystem.setMotor(speed);
     }

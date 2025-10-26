@@ -1,17 +1,21 @@
 package frc.robot;
 
-import java.io.File;
-
-import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+
+import com.pathplanner.lib.auto.NamedCommands;
+import com.pathplanner.lib.auto.AutoBuilder;
+
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 
 import frc.robot.commands.Climber.ClimberCommand;
-import frc.robot.commands.Elevator.ElevatorHoldCommand;
 import frc.robot.commands.Elevator.ElevatorJoystickCommand;
 import frc.robot.commands.Elevator.ElevatorPIDCommand;
 import frc.robot.commands.Intake.IntakeMotorCommand;
 import frc.robot.commands.Intake.IntakeMoveCommand;
+import frc.robot.commands.Sequential.PlaceSequence;
 
 import frc.robot.subsystems.SwerveSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
@@ -21,6 +25,7 @@ import frc.robot.subsystems.ClimberSubsystem;
 import frc.robot.Constants.ClimberConstants;
 import frc.robot.Constants.ElevatorConstants;
 import frc.robot.Constants.IntakeConstants;
+import frc.robot.Constants.DrivetrainConstants;
 import frc.robot.Constants.DriverConstants;
 import frc.robot.Constants.OperatorConstants;
 
@@ -29,14 +34,20 @@ import swervelib.SwerveInputStream;
 public class RobotContainer {
 
     // Define robot subsystems and commands
-    private final SwerveSubsystem swerveSubsystem = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(), "swerve"));
+    private final SwerveSubsystem swerveSubsystem = new SwerveSubsystem(DrivetrainConstants.swerveJsonDirectory);
     private final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
     private final IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
     private final ClimberSubsystem climberSubsystem = new ClimberSubsystem();
 
+    // Telemetry
+    private final Telemetry telemetry = new Telemetry(elevatorSubsystem, intakeSubsystem, climberSubsystem);
+
     // Joysticks
     final CommandXboxController driverXbox = new CommandXboxController(0);
     final CommandXboxController operatorXbox = new CommandXboxController(1);
+
+    // Auton Chooser
+    private final SendableChooser<Command> autoChooser = AutoBuilder.buildAutoChooser();
 
     // Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
     SwerveInputStream driveAngularVelocity = SwerveInputStream.of(swerveSubsystem.getSwerveDrive(),
@@ -50,6 +61,17 @@ public class RobotContainer {
 
     public RobotContainer() {
         configureButtonBindings();
+
+        // Register named commands for pathplanner auton
+        NamedCommands.registerCommand("PlaceSequence", new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_TWO));
+
+        // Create Shuffleboard widget to manually select auton before match
+        Shuffleboard.getTab("Autonomous")
+            .add("Auton Chooser", autoChooser)
+            .withWidget(BuiltInWidgets.kComboBoxChooser)
+            .withSize(3, 1)
+            .withPosition(0, 0);
+
     }
 
     private void configureButtonBindings() {
@@ -58,11 +80,11 @@ public class RobotContainer {
         operatorXbox.rightTrigger(OperatorConstants.RIGHT_TRIGGER_DEADZONE).whileTrue(new ElevatorJoystickCommand(elevatorSubsystem, operatorXbox));
         operatorXbox.leftTrigger(OperatorConstants.LEFT_TRIGGER_DEADZONE).whileTrue(new ElevatorJoystickCommand(elevatorSubsystem, operatorXbox));
         operatorXbox.a().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.POSITION_ONE));
-        operatorXbox.b().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.POSITION_TWO));
-        operatorXbox.y().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.POSITION_THREE));
-        operatorXbox.x().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.POSITION_FOUR));
+        
+        operatorXbox.b().onTrue(new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_TWO));
+        operatorXbox.x().onTrue(new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_THREE));
+
         operatorXbox.leftBumper().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.LOAD_STATION_POSITION));
-        elevatorSubsystem.setDefaultCommand(new ElevatorHoldCommand(elevatorSubsystem));
 
         // Intake Controls
         operatorXbox.povUp().onTrue(new IntakeMoveCommand(intakeSubsystem, true));
@@ -74,18 +96,30 @@ public class RobotContainer {
         driverXbox.rightBumper().whileTrue(new ClimberCommand(climberSubsystem, ClimberConstants.CLIMBER_SPEED));
         driverXbox.leftBumper().whileTrue(new ClimberCommand(climberSubsystem, -ClimberConstants.CLIMBER_SPEED));
 
-        // Drive Controls
-        Command driveFieldOrientedAnglularVelocity = swerveSubsystem.driveFieldOriented(driveAngularVelocity);
-        swerveSubsystem.setDefaultCommand(driveFieldOrientedAnglularVelocity);
-
     }
 
-    // TODO: Make Auton Chooser
+    // Auton chooser called on Autonomous Init
     public Command getAutonomousCommand() {
-        return swerveSubsystem.getAutonomousCommand("TODO");
+        return autoChooser.getSelected();
     }
 
-    public void setMotorBrake(boolean brake) {
+    // Set drive motor brakes
+    public void setDriveMotorBrake(boolean brake) {
         swerveSubsystem.setMotorBrake(brake);
+    }
+
+    // Allows elevator to be dropped to base position while disabled
+    public void setElevatorMotorBrake(boolean brake) {
+        elevatorSubsystem.setMotorBrake(brake);
+    }
+
+    // Set drive Controls For Teleop
+    public void setSwerveDefaultCommand() {
+        swerveSubsystem.setDefaultCommand(swerveSubsystem.driveFieldOriented(driveAngularVelocity));
+    }
+
+    // Runs Live Tuning
+    public void periodic() {
+        telemetry.periodic();
     }
 }

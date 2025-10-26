@@ -11,10 +11,6 @@ import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.RelativeEncoder;
 
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
-import edu.wpi.first.networktables.GenericEntry;
-
 import frc.robot.Constants.ElevatorConstants;
 
 public class ElevatorSubsystem extends SubsystemBase{
@@ -45,19 +41,15 @@ public class ElevatorSubsystem extends SubsystemBase{
         elevatorFollowerMotor.configure(elevatorFollowerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         // Initialize Encoder and PID Controller
         encoder = elevatorLeaderMotor.getEncoder();
-        encoder.setPosition(0.0); // Encoder Zeroing on Startup
         pidController = elevatorLeaderMotor.getClosedLoopController();
     }
-    
-    public double getEncoder() {
-        return encoder.getPosition();
-    }
 
+    // Move elevator to desired encoder position
     public void setSetpoint(double setpoint) {
-        // Move elevator to desired encoder position
         pidController.setReference(setpoint, ControlType.kPosition);
     }
 
+    // Manual elevator control
     public void setMotor(double speed) {
         // Safety feature to limit bounds of elevator movement
         if ((speed < 0 && getEncoder() <= ElevatorConstants.LOWER_BOUND) ||
@@ -68,15 +60,26 @@ public class ElevatorSubsystem extends SubsystemBase{
         }
     }
 
-    // Shuffleboard / Testing
-    private final ShuffleboardTab tab = Shuffleboard.getTab("Subsystems");
-    private final GenericEntry encoderOutput = tab.add("Elevator Encoder Value", 0.0).getEntry();
-    private final GenericEntry speedOutput = tab.add("Elevator PID Calculated Speed", 0.0).getEntry();
+    // Toggle elevator motor break to allow the elevator to be easily reset at its base position
+    public void setMotorBrake(boolean brake) {
+        IdleMode mode = brake ? IdleMode.kBrake : IdleMode.kCoast;
+        SparkMaxConfig tempConfig = new SparkMaxConfig();
+        tempConfig.idleMode(mode);
+        elevatorLeaderMotor.configure(tempConfig, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
+        elevatorFollowerMotor.configure(tempConfig, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
+    }
 
-    @Override
-    public void periodic() {
-        encoderOutput.setDouble(getEncoder());
-        speedOutput.setDouble(elevatorLeaderMotor.get());
+    // Getters
+    public double getEncoder() { return encoder.getPosition(); }
+    public double getP() { return elevatorLeaderMotor.configAccessor.closedLoop.getP(); }
+    public double getI() { return elevatorLeaderMotor.configAccessor.closedLoop.getI(); }
+    public double getD() { return elevatorLeaderMotor.configAccessor.closedLoop.getD(); }
+
+    // Live Tuning
+    public void setPID(double p, double i, double d) {
+        SparkMaxConfig tempConfig = new SparkMaxConfig();
+        tempConfig.closedLoop.pid(p,i,d);
+        elevatorLeaderMotor.configure(tempConfig, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
     }
     
 }

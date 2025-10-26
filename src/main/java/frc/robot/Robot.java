@@ -36,11 +36,13 @@ public class Robot extends TimedRobot {
   public void robotPeriodic() {
     // Required to run command based code
     CommandScheduler.getInstance().run();
+    // robotContainer.periodic(); // Comment out this line if not using live tuning for telemetry
   }
 
   @Override
   public void disabledInit() {
-    robotContainer.setMotorBrake(true);
+    robotContainer.setDriveMotorBrake(true);
+    robotContainer.setElevatorMotorBrake(false);
     disabledTimer.reset();
     disabledTimer.start();
   }
@@ -48,7 +50,7 @@ public class Robot extends TimedRobot {
   @Override
   public void disabledPeriodic() {
     if (disabledTimer.hasElapsed(DrivetrainConstants.WHEEL_LOCK_TIME)) {
-      robotContainer.setMotorBrake(false);
+      robotContainer.setDriveMotorBrake(false);
       disabledTimer.stop();
       disabledTimer.reset();
     }
@@ -56,8 +58,9 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousInit() {
-    robotContainer.setMotorBrake(true);
-    // autonomousCommand = robotContainer.getAutonomousCommand();
+    robotContainer.setDriveMotorBrake(true);
+    robotContainer.setElevatorMotorBrake(true);
+    autonomousCommand = robotContainer.getAutonomousCommand();
 
     // schedule the autonomous command (example)
     if (autonomousCommand != null) {
@@ -72,12 +75,17 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopInit() {
-    // This makes sure that the autonomous stops running when teleop starts running. 
+    robotContainer.setElevatorMotorBrake(true);
+
+    // This makes sure that the autonomous stops running when teleop starts running
     if (autonomousCommand != null) {
       autonomousCommand.cancel();
     } else {
       CommandScheduler.getInstance().cancelAll();
     }
+
+    // Set default commands once the match begins
+    robotContainer.setSwerveDefaultCommand();
   }
 
   @Override
@@ -87,8 +95,13 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testInit() {
-    // Cancels all running commands at the start of test mode.
+    robotContainer.setElevatorMotorBrake(true);
+
+    // Cancels all running commands at the start of test mode
     CommandScheduler.getInstance().cancelAll();
+
+    // Set default commands once the match begins
+    robotContainer.setSwerveDefaultCommand();
   }
 
   @Override

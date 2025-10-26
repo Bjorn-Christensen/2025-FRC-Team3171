@@ -2,6 +2,7 @@ package frc.robot.commands.Elevator;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.robot.Constants.ElevatorConstants;
 import frc.robot.subsystems.ElevatorSubsystem;
 
 public class ElevatorJoystickCommand extends Command{
@@ -16,11 +17,6 @@ public class ElevatorJoystickCommand extends Command{
     }
 
     @Override
-    public void initialize() {
-
-    }
-
-    @Override
     public void execute() {
         double speed = xboxController.getRightTriggerAxis() - xboxController.getLeftTriggerAxis();
         elevatorSubsystem.setMotor(speed);
@@ -28,7 +24,13 @@ public class ElevatorJoystickCommand extends Command{
 
     @Override
     public void end(boolean interrupted) {
-        elevatorSubsystem.setMotor(0);
+        // Safety Feature to Ensure Elevator Bounds are Upheld
+        double lastEncoderPos = Math.min(
+            ElevatorConstants.UPPER_BOUND,
+            Math.max(ElevatorConstants.LOWER_BOUND, elevatorSubsystem.getEncoder())
+        );
+
+        elevatorSubsystem.setSetpoint(lastEncoderPos);
     }
 
     @Override

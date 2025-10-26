@@ -12,9 +12,6 @@ import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
-import edu.wpi.first.networktables.GenericEntry;
 
 import frc.robot.Constants.IntakeConstants;
 
@@ -47,27 +44,21 @@ public class IntakeSubsystem extends SubsystemBase{
         compressor.enableAnalog(IntakeConstants.MIN_PRESSURE, IntakeConstants.MAX_PRESSURE);
     }
 
+    // Manual intake/outtake control
     public void setMotor(double speed) {
-        intakeLeaderMotor.set(speed);
-    }
-
-    public void moveIntake(boolean forward) {
-        if(forward) {
-            doubleSolenoid.set(Value.kForward);
-        } else {
-            doubleSolenoid.set(Value.kReverse);
+        // Ensure pneumatic is pushed forward to prevent breakage
+        if(doubleSolenoid.get() == Value.kForward) {
+            intakeLeaderMotor.set(speed);
         }
     }
 
-    // Shuffleboard / Testing
-    private final ShuffleboardTab tab = Shuffleboard.getTab("Subsystems");
-    private final GenericEntry pneumaticsOutput = tab.add("Air Pressure", 0.0).getEntry();
-    private final GenericEntry solenoidOutput = tab.add("Solenoid Value", "").getEntry();
-
-    @Override
-    public void periodic() {
-        pneumaticsOutput.setDouble(compressor.getPressure());
-        solenoidOutput.setString(doubleSolenoid.get().toString());
+    // Set pneumatic forward or backward
+    public void moveIntake(boolean forward) {
+        doubleSolenoid.set(forward ? Value.kForward : Value.kReverse);
     }
+
+    // Getters
+    public double getCompressorPressure() { return compressor.getPressure(); }
+    public String getPneumaticState() { return doubleSolenoid.get().toString(); }
     
 }
