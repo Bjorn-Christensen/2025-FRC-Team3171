@@ -2,9 +2,13 @@ package frc.robot;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Filesystem;
 
@@ -68,18 +72,23 @@ public final class Constants {
     }
 
     // Vision setup
-    public static class Vision {
+    public static class VisionConstants {
         // One entry per camera you have configured in PhotonVision
         public static final List<CameraConfig> CAMERAS = List.of(
             new CameraConfig(
                 "frontCam",
-                new Transform3d(new Translation3d(0.0, 0.0, 0.0), new Rotation3d(0.0, 0.0, 0.0))
-            ),
-            new CameraConfig(
-                "rearCam",
-                new Transform3d(new Translation3d(0.0, 0.0, 0.0), new Rotation3d(0.0, 0.0, 0.0))
+                new Transform3d(new Translation3d(0.25, 0.0, Units.inchesToMeters(12)),
+                new Rotation3d(0.0, Math.toRadians(-10.0), 0.0))
             )
         );
+
+        /** Std-devs when we only trust a single tag (meters for x/y, radians for heading). */
+        public static final Matrix<N3, N1> SINGLE_TAG_STD_DEVS =
+            VecBuilder.fill(1.5, 1.5, Math.toRadians(35.0));
+
+        /** Std-devs when multiple tags contribute to the estimate (tighter). */
+        public static final Matrix<N3, N1> MULTI_TAG_STD_DEVS =
+            VecBuilder.fill(0.3, 0.3, Math.toRadians(7.0));
     }
 
     // Compact config holder for each Photon camera

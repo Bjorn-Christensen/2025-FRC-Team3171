@@ -3,8 +3,11 @@ package frc.robot;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 import com.pathplanner.lib.auto.NamedCommands;
+import com.pathplanner.lib.commands.PathPlannerAuto;
+import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.auto.AutoBuilder;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -100,7 +103,22 @@ public class RobotContainer {
 
     // Auton chooser called on Autonomous Init
     public Command getAutonomousCommand() {
-        return autoChooser.getSelected();
+        Command selected = autoChooser.getSelected();
+        if(selected != null) {
+            String autoName = selected.getName();
+            try {
+                var paths = PathPlannerAuto.getPathGroupFromAutoFile(autoName);
+                if (!paths.isEmpty()) {
+                    PathPlannerPath firstPath = paths.get(0);
+                    Pose2d startPose = firstPath.getPathPoses().get(0);
+                    swerveSubsystem.primeStartingPose(startPose);
+                }
+            } catch (Exception e) {
+                System.err.println("primeStartingPose failed: " + e.getMessage());
+            }
+        }
+
+        return selected;
     }
 
     // Set drive motor brakes

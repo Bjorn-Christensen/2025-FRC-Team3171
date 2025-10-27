@@ -7,12 +7,14 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -20,30 +22,22 @@ import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
+import org.photonvision.simulation.PhotonCameraSim;
+import org.photonvision.simulation.SimCameraProperties;
+import org.photonvision.simulation.VisionSystemSim;
 import org.photonvision.targeting.PhotonPipelineResult;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
 import swervelib.SwerveDrive;
-
+import swervelib.telemetry.SwerveDriveTelemetry;
 import frc.robot.Constants;
+import frc.robot.Constants.VisionConstants;
 import frc.robot.Constants.CameraConfig;
 
 /**
  * Vision subsystem using PhotonVision that plugs into swervelib's pose estimator.
  */
 public class Vision extends SubsystemBase {
-
-  // ====== User-tunable constants ======
-  /** Must match the name set in the PhotonVision UI. */
-  public static final String kCameraName = "photonvision";
-
-  /** Std-devs when we only trust a single tag (meters for x/y, radians for heading). */
-  private static final Matrix<N3, N1> kSingleTagStdDevs =
-      VecBuilder.fill(0.9, 0.9, Math.toRadians(25.0));
-
-  /** Std-devs when multiple tags contribute to the estimate (tighter). */
-  private static final Matrix<N3, N1> kMultiTagStdDevs =
-      VecBuilder.fill(0.3, 0.3, Math.toRadians(7.0));
 
   // ====== Context from the drive (for telemetry only) ======
   private final Supplier<Pose2d> currentPoseSupplier; // used in sendable
@@ -52,12 +46,18 @@ public class Vision extends SubsystemBase {
   // One entry per camera.
   private final Map<String, Cam> cams = new LinkedHashMap<>();
 
+  // --- Simulation-only members ---
+  private VisionSystemSim visionSim; // “the world” (targets + cameras)
+
+  // Used to disable vision for very beginning of match
+  private double visionPauseUntil = 0.0;
+
   public Vision(Supplier<Pose2d> currentPoseSupplier, Field2d field) {
     this.currentPoseSupplier = currentPoseSupplier;
     this.field = field;
 
     // Build a camera + estimator for each configured camera in Constants.Vision.CAMERAS
-    for (CameraConfig cfg : Constants.Vision.CAMERAS) {
+    for (CameraConfig cfg : VisionConstants.CAMERAS) {
       PhotonCamera camera = new PhotonCamera(cfg.name);
 
       PhotonPoseEstimator estimator = new PhotonPoseEstimator(
@@ -70,6 +70,29 @@ public class Vision extends SubsystemBase {
       estimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
 
       cams.put(cfg.name, new Cam(camera, estimator));
+    }
+
+    // ---- SIM INIT ----
+    if (RobotBase.isSimulation()) {
+      visionSim = new VisionSystemSim("Vision");
+      visionSim.addAprilTags(Constants.APRIL_TAG_FIELD_LAYOUT);
+
+      for (CameraConfig cfg : VisionConstants.CAMERAS) {
+        Cam cam = cams.get(cfg.name);
+
+        // Camera properties (FOV, res, FPS)
+        cam.camProps = new SimCameraProperties();
+        cam.camProps.setCalibration(960, 720,      // width, height
+                                    Rotation2d.fromDegrees(70.0));  // diagonal FOV approx
+        cam.camProps.setFPS(30);
+        cam.camProps.setAvgLatencyMs(35);
+        cam.camProps.setLatencyStdDevMs(5);
+
+        cam.cameraSim = new PhotonCameraSim(cam.camera, cam.camProps);
+        cam.cameraSim.enableDrawWireframe(true);
+
+        visionSim.addCamera(cam.cameraSim, cfg.robotToCam);
+      }
     }
   }
 
@@ -113,17 +136,23 @@ public class Vision extends SubsystemBase {
    * Pushes all valid camera estimates into the pose estimator.
    */
   public void updatePoseEstimation(SwerveDrive swerveDrive) {
+    double now = edu.wpi.first.wpilibj.Timer.getFPGATimestamp();
+
+    if (SwerveDriveTelemetry.isSimulation && swerveDrive.getSimulationDriveTrainPose().isPresent()) {
+      visionSim.update(swerveDrive.getSimulationDriveTrainPose().get());
+    }
+    
+    if (now < visionPauseUntil) return;   // short quiet period after any reset
+
     for (Cam cam : cams.values()) {
       if (cam.lastEstimate.isEmpty()) continue;
 
       EstimatedRobotPose est = cam.lastEstimate.get();
+      if (est.timestampSeconds < visionPauseUntil) continue; // drop pre-reset frames
       Matrix<N3, N1> stdDevs =
-          (est.targetsUsed.size() >= 2) ? kMultiTagStdDevs : kSingleTagStdDevs;
+          (est.targetsUsed.size() >= 2) ? VisionConstants.MULTI_TAG_STD_DEVS : VisionConstants.SINGLE_TAG_STD_DEVS;
 
-      double ts = est.timestampSeconds;
-
-      // Add each camera's measurement independently. The filter weighs them via stdDevs and time.
-      swerveDrive.addVisionMeasurement(est.estimatedPose.toPose2d(), ts, stdDevs);
+      swerveDrive.addVisionMeasurement(est.estimatedPose.toPose2d(), est.timestampSeconds, stdDevs);
     }
   }
 
@@ -151,11 +180,14 @@ public class Vision extends SubsystemBase {
     }
   }
 
-  // =================== Internal per-camera struct ===================
-
+  // =================== Internal per-camera structure ===================
   private static class Cam {
     final PhotonCamera camera;
     final PhotonPoseEstimator estimator;
+
+    // --- Simulation-only per-camera ---
+    PhotonCameraSim cameraSim;
+    SimCameraProperties camProps;
 
     PhotonPipelineResult lastResult = new PhotonPipelineResult();
     Optional<EstimatedRobotPose> lastEstimate = Optional.empty();
@@ -166,4 +198,20 @@ public class Vision extends SubsystemBase {
     }
   }
 
+  // Helper functions
+  public void pauseVisionFor(double seconds) {
+    visionPauseUntil = Timer.getFPGATimestamp() + seconds;
+  }
+
+  // Call to hard-sync the sim world to a given pose immediately
+  public void forceUpdateSimToPose(Pose2d pose) {
+    if (visionSim != null) {
+      visionSim.update(pose);       // re-anchor the world
+    }
+    // Clear any stale frames so nothing old gets fused
+    for (Cam c : cams.values()) {
+      c.lastEstimate = Optional.empty();
+      c.lastResult = new PhotonPipelineResult();
+    }
+  }
 }

@@ -29,7 +29,7 @@ import frc.robot.Constants.DrivetrainConstants;
 public class SwerveSubsystem extends SubsystemBase{
 
     private final SwerveDrive swerveDrive;
-    // private Vision vision;
+    private Vision vision;
 
     public SwerveSubsystem(File directory) {
 
@@ -48,8 +48,8 @@ public class SwerveSubsystem extends SubsystemBase{
         swerveDrive.setModuleEncoderAutoSynchronize(false, 1); // Enable if you want to resynchronize your absolute encoders and motor encoders periodically when they are not moving.
 
         // Enable vision tracking and path planner
-        // setupPhotonVision();
-        // swerveDrive.stopOdometryThread(); // Stop the odometry thread if we are using vision that way we can synchronize updates better.
+        setupPhotonVision();
+        swerveDrive.stopOdometryThread(); // Stop the odometry thread if we are using vision that way we can synchronize updates better.
         setupPathPlanner();
         RobotModeTriggers.autonomous().onTrue(Commands.runOnce(this::zeroGyroWithAlliance));
     }
@@ -62,13 +62,13 @@ public class SwerveSubsystem extends SubsystemBase{
     }
 
     public void setupPhotonVision() {
-        // vision = new Vision(swerveDrive::getPose, swerveDrive.field);
+        vision = new Vision(swerveDrive::getPose, swerveDrive.field);
     }
 
     @Override
     public void periodic() {
-        // swerveDrive.updateOdometry(); // When vision is enabled we must manually update odometry in SwerveDrive
-        // vision.updatePoseEstimation(swerveDrive);
+        swerveDrive.updateOdometry(); // When vision is enabled we must manually update odometry in SwerveDrive
+        vision.updatePoseEstimation(swerveDrive);
     }
 
     public Pose2d getPose() {
@@ -164,4 +164,15 @@ public class SwerveSubsystem extends SubsystemBase{
         //Preload PathPlanner Path finding
         PathfindingCommand.warmupCommand().schedule();
     }
+
+    public void primeStartingPose(Pose2d start) {
+        // 1) Put odometry at the auto start pose *before* the match starts
+        resetOdometry(start);       // your existing helper
+      
+        // 2) Tell vision to align + ignore stale frames (see Vision helpers below)
+        if (SwerveDriveTelemetry.isSimulation) {
+          vision.pauseVisionFor(0.35);    // ~ camera latency + buffer
+          vision.forceUpdateSimToPose(start);
+        }
+      }
 }
