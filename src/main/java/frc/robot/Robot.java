@@ -4,20 +4,23 @@
 
 package frc.robot;
 
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.LoggedRobot;
+import org.littletonrobotics.junction.networktables.NT4Publisher;
+
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
 import frc.robot.Constants.DrivetrainConstants;
 
-public class Robot extends TimedRobot {
+public class Robot extends LoggedRobot {
   
   private RobotContainer robotContainer;
   private Command autonomousCommand;
   private Timer disabledTimer;
-  
+
   @Override
   public void robotInit() {
     // Instantiate the RobotContainer
@@ -30,13 +33,16 @@ public class Robot extends TimedRobot {
     if (isSimulation()) {
       DriverStation.silenceJoystickConnectionWarning(true);
     }
+    // AdvantageKit setup
+    Logger.addDataReceiver(new NT4Publisher()); // live stream to AdvantageScope
+    Logger.start();
   }
 
   @Override
   public void robotPeriodic() {
     // Required to run command based code
     CommandScheduler.getInstance().run();
-    // robotContainer.periodic(); // Comment out this line if not using live tuning for telemetry
+    robotContainer.periodic(); // Comment out this line if not using live tuning for telemetry
   }
 
   @Override
@@ -116,6 +122,6 @@ public class Robot extends TimedRobot {
 
   @Override
   public void simulationPeriodic() {
-
+    
   }
 }

@@ -1,10 +1,10 @@
 package frc.robot;
 
-import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
-import edu.wpi.first.networktables.GenericEntry;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.DoubleSubscriber;
+import edu.wpi.first.networktables.StringPublisher;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
 
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
@@ -14,24 +14,21 @@ import frc.robot.subsystems.ClimberSubsystem;
 public final class Telemetry {
 
     // Tabs
-    private final ShuffleboardTab subsystemsTab = Shuffleboard.getTab("Subsystems");
-    private final ShuffleboardTab tuningTab = Shuffleboard.getTab("Tuning");
+    private final NetworkTable telemRoot = NetworkTableInstance.getDefault().getTable("Telemetry");
+    private final NetworkTable tuningRoot = NetworkTableInstance.getDefault().getTable("Tuning");
 
-    // Grouped grid layouts
-    private final ShuffleboardLayout elevatorLayout = subsystemsTab.getLayout("Elevator", BuiltInLayouts.kGrid)
-                                                                   .withSize(4, 2)
-                                                                   .withPosition(0, 0);
-    private final ShuffleboardLayout intakeLayout = subsystemsTab.getLayout("Intake", BuiltInLayouts.kGrid)
-                                                                 .withSize(4, 2)
-                                                                 .withPosition(4, 0);
-    private final ShuffleboardLayout climberLayout = subsystemsTab.getLayout("Climber", BuiltInLayouts.kGrid)
-                                                                  .withSize(4, 2)
-                                                                  .withPosition(0, 2);
+    // Publishers 
+    private final DoublePublisher elevEncoderPub;
+    private final DoublePublisher intakePressurePub;
+    private final StringPublisher intakeStatePub;
+    private final DoublePublisher climberSpeedPub;
 
-    // Optional tuning entries
-    private GenericEntry elev_kP, elev_kI, elev_kD;
+    // Subscribers / For live tuning
+    private final DoubleSubscriber elev_kP_sub;
+    private final DoubleSubscriber elev_kI_sub;
+    private final DoubleSubscriber elev_kD_sub;;
 
-    // Store previous tuning values
+    // Cache last-applied PID to avoid spamming setPID
     private double last_kP, last_kI, last_kD;
 
     // Subsystems
@@ -44,66 +41,44 @@ public final class Telemetry {
         this.intake = intake;
         this.climber = climber;
 
-        checkElevator();
-        checkIntake();
-        checkClimber();
-        checkTuning(); // Comment out this line if you don’t want live tuning
+        // --- Publishers ---
+        elevEncoderPub = telemRoot.getSubTable("Elevator").getDoubleTopic("Encoder").publish();
+        intakePressurePub = telemRoot.getSubTable("Intake").getDoubleTopic("PneumaticPressurePsi").publish();
+        intakeStatePub = telemRoot.getSubTable("Intake").getStringTopic("PneumaticState").publish();
+        climberSpeedPub = telemRoot.getSubTable("Climber").getDoubleTopic("MotorSpeed").publish();
+
+        // --- Subscribers for tuning ---
+        // Seed topics with current values so users see defaults immediately
+        var elevTuningTbl = tuningRoot.getSubTable("Elevator");
+        elevTuningTbl.getDoubleTopic("kP").publish().set(elevator.getP());
+        elevTuningTbl.getDoubleTopic("kI").publish().set(elevator.getI());
+        elevTuningTbl.getDoubleTopic("kD").publish().set(elevator.getD());
+
+        elev_kP_sub = elevTuningTbl.getDoubleTopic("kP").subscribe(elevator.getP());
+        elev_kI_sub = elevTuningTbl.getDoubleTopic("kI").subscribe(elevator.getI());
+        elev_kD_sub = elevTuningTbl.getDoubleTopic("kD").subscribe(elevator.getD());
+
+        // Initialize last values
+        last_kP = elevator.getP();
+        last_kI = elevator.getI();
+        last_kD = elevator.getD();
     }
 
-    // ----------------------
-    // Elevator widgets
-    // ----------------------
-    private void checkElevator() {
-        elevatorLayout.addNumber("Encoder", elevator::getEncoder)
-                  .withPosition(0, 0)
-                  .withSize(1, 1);
-    }
-
-    // ----------------------
-    // Intake widgets
-    // ----------------------
-    private void checkIntake() {
-        intakeLayout.addNumber("Pneumatic Pressure", intake::getCompressorPressure)
-                    .withPosition(0, 0)
-                    .withSize(1, 1);
-        intakeLayout.addString("Pneumatic State", intake::getPneumaticState)
-                    .withPosition(1, 0)
-                    .withSize(1, 1);
-    }
-
-    // ----------------------
-    // Climber widgets
-    // ----------------------
-    private void checkClimber() {
-        climberLayout.addNumber("Motor Speed", climber::getSpeed)
-                     .withPosition(0, 0)
-                     .withSize(1, 1);
-    }
-
-    // ----------------------
-    // Optional tuning panel
-    // ----------------------
-    private void checkTuning() {
-        elev_kP = tuningTab.add("Elevator P", elevator.getP()).getEntry();
-        elev_kI = tuningTab.add("Elevator I", elevator.getI()).getEntry();
-        elev_kD = tuningTab.add("Elevator D", elevator.getD()).getEntry();
-    }
-
-    // Only used for live tuning
     public void periodic() {
-        // Read-back with defaults so we don’t spam if entries aren’t visible
-        double kP = elev_kP != null ? elev_kP.getDouble(elevator.getP()) : elevator.getP();
-        double kI = elev_kI != null ? elev_kI.getDouble(elevator.getI()) : elevator.getI();
-        double kD = elev_kD != null ? elev_kD.getDouble(elevator.getD()) : elevator.getD();
+        // ---- Publish telemetry ----
+        elevEncoderPub.set(elevator.getEncoder());
+        intakePressurePub.set(intake.getCompressorPressure());
+        intakeStatePub.set(intake.getPneumaticState());
+        climberSpeedPub.set(climber.getSpeed());
 
-        // Only update PID controls if they've been changed on shuffleboard
-        if (kP != last_kP || kI != last_kI || kD != last_kD) { 
-            elevator.setPID(kP, kI, kD); 
+        // ---- Live PID tuning ----
+        double kP = elev_kP_sub.get();
+        double kI = elev_kI_sub.get();
+        double kD = elev_kD_sub.get();
 
-            last_kP = kP;
-            last_kI = kI;
-            last_kD = kD;
-
+        if (kP != last_kP || kI != last_kI || kD != last_kD) {
+            elevator.setPID(kP, kI, kD);
+            last_kP = kP; last_kI = kI; last_kD = kD;
             System.out.printf("Updated Elevator PID: P=%.3f I=%.3f D=%.3f%n", kP, kI, kD);
         }
     }

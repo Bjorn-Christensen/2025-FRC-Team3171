@@ -71,14 +71,21 @@ public final class Constants {
         public static final double LEFT_TRIGGER_DEADZONE = 0.1, RIGHT_TRIGGER_DEADZONE = 0.1;
     }
 
+    public static class AprilTagConstants {
+        public static final int[] HUMAN_LOAD_TAGS_BLUE = {12,13};
+        public static final int[] REEF_TAGS_BLUE = {17,18,19,20,21,22};
+        public static final int[] HUMAN_LOAD_TAGS_RED = {1,2};
+        public static final int[] REEF_TAGS_RED = {6,7,8,9,10,11};
+    }
+
     // Vision setup
     public static class VisionConstants {
         // One entry per camera you have configured in PhotonVision
         public static final List<CameraConfig> CAMERAS = List.of(
             new CameraConfig(
                 "frontCam",
-                new Transform3d(new Translation3d(0.25, 0.0, Units.inchesToMeters(12)),
-                new Rotation3d(0.0, Math.toRadians(-10.0), 0.0))
+                new Transform3d(new Translation3d(0.25, 0.0, Units.inchesToMeters(6.0)),
+                new Rotation3d(0.0, Math.toRadians(0.0), 0.0))
             )
         );
 

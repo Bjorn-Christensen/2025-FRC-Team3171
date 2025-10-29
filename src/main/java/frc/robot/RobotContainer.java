@@ -5,13 +5,16 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathPlannerAuto;
 import com.pathplanner.lib.path.PathPlannerPath;
+
+import java.util.Set;
+
 import com.pathplanner.lib.auto.AutoBuilder;
 
+import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
+
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 
 import frc.robot.commands.Climber.ClimberCommand;
 import frc.robot.commands.Elevator.ElevatorJoystickCommand;
@@ -50,7 +53,7 @@ public class RobotContainer {
     final CommandXboxController operatorXbox = new CommandXboxController(1);
 
     // Auton Chooser
-    private final SendableChooser<Command> autoChooser = AutoBuilder.buildAutoChooser();
+    private final LoggedDashboardChooser<Command> autoChooser;
 
     // Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
     SwerveInputStream driveAngularVelocity = SwerveInputStream.of(swerveSubsystem.getSwerveDrive(),
@@ -66,15 +69,13 @@ public class RobotContainer {
         configureButtonBindings();
 
         // Register named commands for pathplanner auton
-        NamedCommands.registerCommand("PlaceSequence", new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_TWO));
+        NamedCommands.registerCommand("PlaceSequence", new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_THREE));
+        // NamedCommands.registerCommand("PlaceSequence", Commands.defer(() -> 
+        //                                 swerveSubsystem.precisionScoreToReefRight(elevatorSubsystem, intakeSubsystem), 
+        //                                 Set.of(swerveSubsystem)));
 
-        // Create Shuffleboard widget to manually select auton before match
-        Shuffleboard.getTab("Autonomous")
-            .add("Auton Chooser", autoChooser)
-            .withWidget(BuiltInWidgets.kComboBoxChooser)
-            .withSize(3, 1)
-            .withPosition(0, 0);
-
+        // Build chooser after NamedCommands so event markers have something to call
+        autoChooser = new LoggedDashboardChooser<>("Auto Routine", AutoBuilder.buildAutoChooser("Test"));
     }
 
     private void configureButtonBindings() {
@@ -99,11 +100,16 @@ public class RobotContainer {
         driverXbox.rightBumper().whileTrue(new ClimberCommand(climberSubsystem, ClimberConstants.CLIMBER_SPEED));
         driverXbox.leftBumper().whileTrue(new ClimberCommand(climberSubsystem, -ClimberConstants.CLIMBER_SPEED));
 
+        // Auto Drive Controls
+        driverXbox.b().onTrue(Commands.defer(() -> swerveSubsystem.driveToReefRight(), Set.of(swerveSubsystem)));
+        driverXbox.x().onTrue(Commands.defer(() -> swerveSubsystem.driveToReefRight(), Set.of(swerveSubsystem)));
+        driverXbox.a().onTrue(Commands.defer(() -> swerveSubsystem.driveToHumanLoad(), Set.of(swerveSubsystem)));
+
     }
 
     // Auton chooser called on Autonomous Init
     public Command getAutonomousCommand() {
-        Command selected = autoChooser.getSelected();
+        Command selected = autoChooser.get();
         if(selected != null) {
             String autoName = selected.getName();
             try {
