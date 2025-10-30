@@ -15,7 +15,6 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-
 import frc.robot.commands.Climber.ClimberCommand;
 import frc.robot.commands.Elevator.ElevatorJoystickCommand;
 import frc.robot.commands.Elevator.ElevatorPIDCommand;
@@ -65,14 +64,17 @@ public class RobotContainer {
                                                               .scaleRotation(0.8)
                                                               .allianceRelativeControl(true);
 
+    // Constructor
     public RobotContainer() {
         configureButtonBindings();
 
         // Register named commands for pathplanner auton
-        NamedCommands.registerCommand("PlaceSequence", new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_THREE));
-        // NamedCommands.registerCommand("PlaceSequence", Commands.defer(() -> 
-        //                                 swerveSubsystem.precisionScoreToReefRight(elevatorSubsystem, intakeSubsystem), 
-        //                                 Set.of(swerveSubsystem)));
+        NamedCommands.registerCommand("PlaceSequence", 
+            new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_THREE));
+        NamedCommands.registerCommand("PrecisionScoreLeft", 
+            Commands.defer(() -> swerveSubsystem.precisionLineUp(true), Set.of(swerveSubsystem)));
+        NamedCommands.registerCommand("PrecisionScoreRight", 
+            Commands.defer(() -> swerveSubsystem.precisionLineUp(false), Set.of(swerveSubsystem)));
 
         // Build chooser after NamedCommands so event markers have something to call
         autoChooser = new LoggedDashboardChooser<>("Auto Routine", AutoBuilder.buildAutoChooser("Test"));
@@ -83,11 +85,9 @@ public class RobotContainer {
         // Elevator Controls
         operatorXbox.rightTrigger(OperatorConstants.RIGHT_TRIGGER_DEADZONE).whileTrue(new ElevatorJoystickCommand(elevatorSubsystem, operatorXbox));
         operatorXbox.leftTrigger(OperatorConstants.LEFT_TRIGGER_DEADZONE).whileTrue(new ElevatorJoystickCommand(elevatorSubsystem, operatorXbox));
-        operatorXbox.a().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.POSITION_ONE));
-        
+        operatorXbox.a().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.POSITION_ONE));       
         operatorXbox.b().onTrue(new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_TWO));
         operatorXbox.x().onTrue(new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_THREE));
-
         operatorXbox.leftBumper().onTrue(new ElevatorPIDCommand(elevatorSubsystem, ElevatorConstants.LOAD_STATION_POSITION));
 
         // Intake Controls
@@ -101,8 +101,8 @@ public class RobotContainer {
         driverXbox.leftBumper().whileTrue(new ClimberCommand(climberSubsystem, -ClimberConstants.CLIMBER_SPEED));
 
         // Auto Drive Controls
-        driverXbox.b().onTrue(Commands.defer(() -> swerveSubsystem.driveToReefRight(), Set.of(swerveSubsystem)));
-        driverXbox.x().onTrue(Commands.defer(() -> swerveSubsystem.driveToReefRight(), Set.of(swerveSubsystem)));
+        driverXbox.b().onTrue(Commands.defer(() -> swerveSubsystem.driveToReef(false), Set.of(swerveSubsystem)));
+        driverXbox.x().onTrue(Commands.defer(() -> swerveSubsystem.driveToReef(true), Set.of(swerveSubsystem)));
         driverXbox.a().onTrue(Commands.defer(() -> swerveSubsystem.driveToHumanLoad(), Set.of(swerveSubsystem)));
 
     }
@@ -142,7 +142,7 @@ public class RobotContainer {
         swerveSubsystem.setDefaultCommand(swerveSubsystem.driveFieldOriented(driveAngularVelocity));
     }
 
-    // Runs Live Tuning
+    // Runs Live PID Tuning
     public void periodic() {
         telemetry.periodic();
     }

@@ -71,6 +71,7 @@ public final class Constants {
         public static final double LEFT_TRIGGER_DEADZONE = 0.1, RIGHT_TRIGGER_DEADZONE = 0.1;
     }
 
+    // April Tags
     public static class AprilTagConstants {
         public static final int[] HUMAN_LOAD_TAGS_BLUE = {12,13};
         public static final int[] REEF_TAGS_BLUE = {17,18,19,20,21,22};
@@ -89,11 +90,11 @@ public final class Constants {
             )
         );
 
-        /** Std-devs when we only trust a single tag (meters for x/y, radians for heading). */
+        // Std-devs when we only trust a single tag (meters for x/y, radians for heading)
         public static final Matrix<N3, N1> SINGLE_TAG_STD_DEVS =
             VecBuilder.fill(1.5, 1.5, Math.toRadians(35.0));
 
-        /** Std-devs when multiple tags contribute to the estimate (tighter). */
+        // Std-devs when multiple tags contribute to the estimate
         public static final Matrix<N3, N1> MULTI_TAG_STD_DEVS =
             VecBuilder.fill(0.3, 0.3, Math.toRadians(7.0));
     }

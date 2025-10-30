@@ -44,8 +44,8 @@ public class SwerveSubsystem extends SubsystemBase{
 
     // Precision Scoring PID Controller
     private final HolonomicDriveController precisionHDC;
-    private static final double POS_TOL_M = 0.05;   // 2 cm
-    private static final double ANG_TOL_RAD = Math.toRadians(5.0); // 2 deg
+    private static final double POS_TOL_M = 0.05;   // tolerance in meters
+    private static final double ANG_TOL_RAD = Math.toRadians(2.0); // tolerace in degrees
 
     public SwerveSubsystem(File directory) {
 
@@ -68,11 +68,11 @@ public class SwerveSubsystem extends SubsystemBase{
         swerveDrive.stopOdometryThread(); // Stop the odometry thread if we are using vision that way we can synchronize updates better.
         setupPathPlanner();
 
-        // Initialize precision controller
+        // Initialize precision movement controller
         precisionHDC = new HolonomicDriveController(
-            new PIDController(1.5, 0.0, 0.2),   // X PID (tune on carpet)
-            new PIDController(2.0, 0.0, 0.0),   // Y PID
-            new ProfiledPIDController(6.0, 0.0, 0.1, // Theta PID (profiled)
+            new PIDController(2.5, 0.0, 0.2),   // X PID (tune on carpet)
+            new PIDController(2.5, 0.0, 0.2),   // Y PID
+            new ProfiledPIDController(3.0, 0.0, 0.2, // Theta PID (profiled)
                 new TrapezoidProfile.Constraints(
                     swerveDrive.getMaximumChassisAngularVelocity(),
                     2.0 * swerveDrive.getMaximumChassisAngularVelocity())));
@@ -85,6 +85,7 @@ public class SwerveSubsystem extends SubsystemBase{
         });
     }
 
+    // Create vision object
     public void setupPhotonVision() {
         vision = new Vision(swerveDrive::getPose, swerveDrive.field);
     }
@@ -129,9 +130,9 @@ public class SwerveSubsystem extends SubsystemBase{
         }
     }
 
-    // ----------------------
+    // --------------------------------------------
     // Pathplanner Functions / Autonomous Control
-    // ----------------------
+    // --------------------------------------------
 
     // Create a path following command using AutoBuilder. This will also trigger event markers.
     public Command getAutonomousCommand(String pathName) {
@@ -183,6 +184,7 @@ public class SwerveSubsystem extends SubsystemBase{
         PathfindingCommand.warmupCommand().schedule();
     }
 
+    // Resets odometry for simulation
     public void primeStartingPose(Pose2d start) {
         // Put odometry at the auto start pose before the match starts
         resetOdometry(start); 
@@ -191,10 +193,10 @@ public class SwerveSubsystem extends SubsystemBase{
         if (SwerveDriveTelemetry.isSimulation) {
           vision.pauseVisionFor(0.35);    // ~ camera latency + buffer
         }
-      }
+    }
     
-
-    public Command driveToReefRight() {
+    // Find nearest reef april tag and drive to it
+    public Command driveToReef(boolean left) {
         Pose2d tagPose;
         var alliance = DriverStation.getAlliance();
         if(alliance.isPresent() && alliance.get() == DriverStation.Alliance.Blue) {
@@ -208,11 +210,13 @@ public class SwerveSubsystem extends SubsystemBase{
         }
 
         // Transform tagPose into target pose .5 meters away and facing towards the target
-        Pose2d targetPose = tagPose.transformBy(new Transform2d(0.7, 0.0, Rotation2d.fromDegrees(180)));
+        double distLeftOrRight = left ? 0.1 : 0.3;
+        Pose2d targetPose = tagPose.transformBy(new Transform2d(0.7, distLeftOrRight, Rotation2d.fromDegrees(180)));
         System.out.println("Target Pose: " + targetPose.toString());
-        return driveToPose(targetPose, tagPose);
+        return driveToPose(targetPose, tagPose, true, left);
     }
 
+    // Find nearest human load april tag and drive to it
     public Command driveToHumanLoad() {
         Pose2d tagPose;
         var alliance = DriverStation.getAlliance();
@@ -227,13 +231,13 @@ public class SwerveSubsystem extends SubsystemBase{
         }
 
         // Transform tagPose into target pose .5 meters away and facing away from the target
-        Pose2d targetPose = tagPose.transformBy(new Transform2d(0.0, 0.0, Rotation2d.fromDegrees(0)));
+        Pose2d targetPose = tagPose.transformBy(new Transform2d(0.3, 0.0, Rotation2d.fromDegrees(0)));
         System.out.println("Target Pose: " + targetPose.toString());
-        return driveToPose(targetPose, tagPose);
+        return driveToPose(targetPose, tagPose, false, false);
     }
 
-    // Drive to desired Pose2d using PathPlanner's Autobuilder function on the fly
-    public Command driveToPose(Pose2d targetPose, Pose2d tagPose) {
+    // Drive to desired Pose2d using PathPlanner's Autobuilder function
+    public Command driveToPose(Pose2d targetPose, Pose2d tagPose, boolean scoringTarget, boolean left) {
         // Create the constraints to use while pathfinding
         PathConstraints constraints = new PathConstraints(
             swerveDrive.getMaximumChassisVelocity(), 4.0,
@@ -244,20 +248,21 @@ public class SwerveSubsystem extends SubsystemBase{
             targetPose,
             constraints,
             // Goal end velocity in meters/sec
-            edu.wpi.first.units.Units.MetersPerSecond.of(0));
-            // .andThen((tagPose != targetPose) ? precisionLineUp(tagPose) : NullPointerException);
+            edu.wpi.first.units.Units.MetersPerSecond.of(0))
+            .andThen(scoringTarget ? precisionLineUp(left) : Commands.none());
     }
 
+    // Line up precise and slow
+    public Command precisionLineUp(boolean left) {
 
+        Pose2d tagPose;
+        var alliance = DriverStation.getAlliance();
+        if(alliance.isPresent() && alliance.get() == DriverStation.Alliance.Blue) {
+            tagPose = vision.nearestTagFromList(AprilTagConstants.REEF_TAGS_BLUE, swerveDrive);
+        } else {
+            tagPose = vision.nearestTagFromList(AprilTagConstants.REEF_TAGS_RED, swerveDrive);
+        }
 
-
-
-
-
-
-
-    // Precision Control WIP
-    private Command precisionLineUp(Pose2d tagPose) {
         // Configure tolerances on every start (safe if called multiple times)
         precisionHDC.setTolerance(
             new Pose2d(POS_TOL_M, POS_TOL_M, new Rotation2d(ANG_TOL_RAD))
@@ -268,7 +273,7 @@ public class SwerveSubsystem extends SubsystemBase{
 
         // Translation: (forward/back along tag X, left/right along tag Y)
         var tx = 0.5;         // e.g., 0.50 m out from the tag face
-        var ty = 0.0;        // +left, -right relative to the tag's rotation
+        var ty = left ? 0.1 : 0.5;        // -left, +right relative to the tag's rotation
 
         Pose2d targetPose = tagPose.transformBy(new Transform2d(new Translation2d(tx, ty), 
                                                                 Rotation2d.fromDegrees(180)));
@@ -282,15 +287,19 @@ public class SwerveSubsystem extends SubsystemBase{
                 ChassisSpeeds commanded =
                     precisionHDC.calculate(cur, targetPose, 0.0, desiredHeading);
 
-                double vx = MathUtil.clamp(commanded.vxMetersPerSecond, -0.3, 0.3);
-                double vy = MathUtil.clamp(commanded.vyMetersPerSecond, -0.3, 0.3);
+                double vx = MathUtil.clamp(commanded.vxMetersPerSecond, -1.0, 1.0);
+                double vy = MathUtil.clamp(commanded.vyMetersPerSecond, -1.0, 1.0);
                 double omega = MathUtil.clamp(commanded.omegaRadiansPerSecond,
-                                            -Units.degreesToRadians(120),
-                                            Units.degreesToRadians(120));
+                                            -Units.degreesToRadians(30),
+                                            Units.degreesToRadians(30));
 
-                swerveDrive.driveFieldOriented(new ChassisSpeeds(vx, vy, omega));
+
+                // Convert robot → field using current robot heading, then drive field-oriented
+                ChassisSpeeds fieldCmd = ChassisSpeeds.fromRobotRelativeSpeeds(
+                    vx, vy, omega, cur.getRotation());
+                swerveDrive.driveFieldOriented(fieldCmd);                          
             },
-            () -> swerveDrive.driveFieldOriented(new ChassisSpeeds()) // onEnd
+            () -> swerveDrive.lockPose() // onEnd stop move
         )
         // Finish when we're inside the tight pos + angle window
         .until(() -> precisionHDC.atReference());

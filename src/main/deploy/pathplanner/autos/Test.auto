@@ -11,9 +11,22 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "PlaceSequence"
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "PlaceSequence"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "PrecisionScoreLeft"
+                }
+              }
+            ]
           }
         },
         {
@@ -23,15 +36,40 @@
           }
         },
         {
+          "type": "wait",
+          "data": {
+            "waitTime": 1.5
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "Load-Reef"
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "PlaceSequence"
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "PlaceSequence"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "PrecisionScoreRight"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Reef-Load"
           }
         }
       ]

@@ -35,9 +35,7 @@ import frc.robot.Constants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.Constants.CameraConfig;
 
-/**
- * Vision subsystem using PhotonVision that plugs into swervelib's pose estimator.
- */
+// Vision subsystem using PhotonVision that plugs into swervelib's pose estimator
 public class Vision extends SubsystemBase {
 
   // ====== Context from the drive (for telemetry only) ======
