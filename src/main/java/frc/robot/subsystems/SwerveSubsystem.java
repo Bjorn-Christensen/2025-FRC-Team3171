@@ -210,7 +210,7 @@ public class SwerveSubsystem extends SubsystemBase{
         }
 
         // Transform tagPose into target pose .5 meters away and facing towards the target
-        double distLeftOrRight = left ? 0.1 : 0.3;
+        double distLeftOrRight = left ? 0.1 : 0.4;
         Pose2d targetPose = tagPose.transformBy(new Transform2d(0.7, distLeftOrRight, Rotation2d.fromDegrees(180)));
         System.out.println("Target Pose: " + targetPose.toString());
         return driveToPose(targetPose, tagPose, true, left);
@@ -273,7 +273,7 @@ public class SwerveSubsystem extends SubsystemBase{
 
         // Translation: (forward/back along tag X, left/right along tag Y)
         var tx = 0.5;         // e.g., 0.50 m out from the tag face
-        var ty = left ? 0.1 : 0.5;        // -left, +right relative to the tag's rotation
+        var ty = left ? 0.1 : 0.4;        // -left, +right relative to the tag's rotation
 
         Pose2d targetPose = tagPose.transformBy(new Transform2d(new Translation2d(tx, ty), 
                                                                 Rotation2d.fromDegrees(180)));

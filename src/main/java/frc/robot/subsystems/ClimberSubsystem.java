@@ -19,13 +19,13 @@ public class ClimberSubsystem extends SubsystemBase{
     public ClimberSubsystem() {
         climberMotor = new SparkMax(ClimberConstants.CLIMBER_CAN_ID, ClimberConstants.MOTOR_TYPE);
         climberConfig = new SparkMaxConfig();
-        climberConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(60).secondaryCurrentLimit(80);
+        climberConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(80).secondaryCurrentLimit(100).voltageCompensation(12.0);
         climberMotor.configure(climberConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
 
     // Manual climber control
     public void setMotor(double speed) {
-        climberMotor.set(speed);   
+        climberMotor.setVoltage(speed * 12.0); // Speed: [-1,1], use setVoltage() over set() for max and consistent speed under torque
     }
 
     // Getters

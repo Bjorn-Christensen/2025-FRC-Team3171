@@ -15,6 +15,7 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.commands.Climber.ClimberCommand;
 import frc.robot.commands.Elevator.ElevatorJoystickCommand;
 import frc.robot.commands.Elevator.ElevatorPIDCommand;
@@ -54,6 +55,9 @@ public class RobotContainer {
     // Auton Chooser
     private final LoggedDashboardChooser<Command> autoChooser;
 
+    // Subsystem requirements required for commands writting direct within subsystem class
+    private final Set<Subsystem> swerveReq = Set.of(swerveSubsystem);
+
     // Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
     SwerveInputStream driveAngularVelocity = SwerveInputStream.of(swerveSubsystem.getSwerveDrive(),
                                                                   () -> driverXbox.getLeftY() * -1,
@@ -69,7 +73,9 @@ public class RobotContainer {
         configureButtonBindings();
 
         // Register named commands for pathplanner auton
-        NamedCommands.registerCommand("PlaceSequence", 
+        NamedCommands.registerCommand("PlaceSequenceL1", 
+            new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_TWO));
+        NamedCommands.registerCommand("PlaceSequenceL2", 
             new PlaceSequence(elevatorSubsystem, intakeSubsystem, ElevatorConstants.POSITION_THREE));
         NamedCommands.registerCommand("PrecisionScoreLeft", 
             Commands.defer(() -> swerveSubsystem.precisionLineUp(true), Set.of(swerveSubsystem)));
@@ -101,9 +107,9 @@ public class RobotContainer {
         driverXbox.leftBumper().whileTrue(new ClimberCommand(climberSubsystem, -ClimberConstants.CLIMBER_SPEED));
 
         // Auto Drive Controls
-        driverXbox.b().onTrue(Commands.defer(() -> swerveSubsystem.driveToReef(false), Set.of(swerveSubsystem)));
-        driverXbox.x().onTrue(Commands.defer(() -> swerveSubsystem.driveToReef(true), Set.of(swerveSubsystem)));
-        driverXbox.a().onTrue(Commands.defer(() -> swerveSubsystem.driveToHumanLoad(), Set.of(swerveSubsystem)));
+        driverXbox.b().onTrue(Commands.defer(() -> swerveSubsystem.driveToReef(false), swerveReq));
+        driverXbox.x().onTrue(Commands.defer(() -> swerveSubsystem.driveToReef(true), swerveReq));
+        driverXbox.a().onTrue(Commands.defer(() -> swerveSubsystem.driveToHumanLoad(), swerveReq));
 
     }
 
